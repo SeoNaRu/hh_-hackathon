@@ -34,6 +34,7 @@ class DinoGame extends FlameGame with TapDetector {
     // 플레이어 추가
     player = Player(
       position: Vector2(size.x * 0.07, size.y - 60),
+      screenHeight: size.y,
     );
     add(player);
 
@@ -54,14 +55,15 @@ class DinoGame extends FlameGame with TapDetector {
 
 class Player extends RectangleComponent {
   static const double playerSize = 50;
-  static const double jumpSpeed = -300; // 점프 속도
-  double verticalSpeed = 10; // 현재 수직 속도
-  double gravity = 10;
-  double groundPosition = 20;
+  static const double jumpSpeed = -500; // 점프 속도를 좀 더 높게 설정
+  double verticalSpeed = 0;
+  double gravity = 800; // 중력 값을 적절하게 조정
+  double groundPosition = 540; // 바닥 위치 적절하게 조정
   bool isJumping = false;
 
-  Player({required position})
-      : super(
+  Player({required Vector2 position, required double screenHeight})
+      : groundPosition = screenHeight - 60, // 바닥 위치를 화면 높이에서 60만큼 빼서 설정
+        super(
           position: position,
           size: Vector2.all(playerSize),
           anchor: Anchor.bottomCenter,
@@ -76,8 +78,8 @@ class Player extends RectangleComponent {
       verticalSpeed += gravity * dt; // 중력 적용
       y += verticalSpeed * dt; // 수직 위치 업데이트
 
-      // 바닥에 도달했는지 확인
-      if (y > groundPosition) {
+      if (y >= groundPosition) {
+        // 바닥에 도달했는지 확인
         y = groundPosition;
         isJumping = false;
         verticalSpeed = 0;
