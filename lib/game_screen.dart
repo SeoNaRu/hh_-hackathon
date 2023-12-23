@@ -26,6 +26,7 @@ class GameScreenState extends State<GameScreen> {
 
 class DinoGame extends FlameGame with TapDetector {
   late Player player;
+  late Timer obstacleTimer;
 
   @override
   Future<void> onLoad() async {
@@ -45,11 +46,36 @@ class DinoGame extends FlameGame with TapDetector {
       paint: Paint()..color = Colors.white,
     );
     add(floor);
+
+    // 장애물 타이머 설정
+    obstacleTimer = Timer(1, onTick: addObstacle, repeat: true);
+    obstacleTimer.start();
+  }
+
+  void addObstacle() {
+    // 새 장애물 생성 및 추가
+    var obstacle = Obstacle(
+      position: Vector2(size.x, size.y - 60),
+      screenHeight: size.y,
+    );
+    add(obstacle);
+
+    // 타이머 재설정
+    double randomInterval = Random().nextDouble() * 4 + 2; // 1초에서 3초 사이
+    obstacleTimer.stop();
+    obstacleTimer = Timer(randomInterval, onTick: addObstacle, repeat: true);
+    obstacleTimer.start();
   }
 
   @override
   void onTapDown(TapDownInfo info) {
     player.jump();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    obstacleTimer.update(dt);
   }
 }
 
@@ -91,6 +117,37 @@ class Player extends RectangleComponent {
     if (!isJumping) {
       isJumping = true;
       verticalSpeed = jumpSpeed;
+    }
+  }
+}
+
+class Obstacle extends RectangleComponent with HasGameRef<DinoGame> {
+  static const double speed = 200; // 장애물 이동 속도
+  late double screenWidth;
+
+  Obstacle({required Vector2 position, required double screenHeight})
+      : super(
+            position: position,
+            size: Vector2(30, 60),
+            anchor: Anchor.bottomRight,
+            paint: Paint()..color = Colors.blue);
+
+  @override
+  Future<void> onLoad() async {
+    super.onLoad();
+    screenWidth = gameRef.size.x; // 게임 화면의 너비를 저장
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    // 오른쪽에서 왼쪽으로 이동
+    x -= speed * dt;
+
+    // 화면 왼쪽 끝에 도달하면 위치 초기화
+    if (x + size.x < 0) {
+      x = screenWidth; // 저장된 게임 화면의 너비를 사용하여 재설정
     }
   }
 }
