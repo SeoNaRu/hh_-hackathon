@@ -115,7 +115,7 @@ class DinoGame extends FlameGame with TapDetector {
 class Player extends RectangleComponent {
   static const double playerSize = 50;
   static const double jumpSpeed = -440; // 점프 속도를 좀 더 높게 설정
-  double verticalSpeed = 20;
+  double verticalSpeed = 100;
   double gravity = 1000; // 중력 값을 적절하게 조정
   double groundPosition = 540; // 바닥 위치 적절하게 조정
   bool isJumping = false;
