@@ -53,7 +53,6 @@ class DinoGame extends FlameGame with TapDetector {
   }
 
   void addObstacle() {
-    // 새 장애물 생성 및 추가
     var obstacle = Obstacle(
       position: Vector2(size.x, size.y - 60),
       screenHeight: size.y,
@@ -61,7 +60,8 @@ class DinoGame extends FlameGame with TapDetector {
     add(obstacle);
 
     // 타이머 재설정
-    double randomInterval = Random().nextDouble() * 4 + 2; // 1초에서 3초 사이
+    double randomInterval = Random().nextDouble() * 4 + 2;
+
     obstacleTimer.stop();
     obstacleTimer = Timer(randomInterval, onTick: addObstacle, repeat: true);
     obstacleTimer.start();
@@ -105,7 +105,6 @@ class Player extends RectangleComponent {
       y += verticalSpeed * dt; // 수직 위치 업데이트
 
       if (y >= groundPosition) {
-        // 바닥에 도달했는지 확인
         y = groundPosition;
         isJumping = false;
         verticalSpeed = 0;
@@ -135,19 +134,17 @@ class Obstacle extends RectangleComponent with HasGameRef<DinoGame> {
   @override
   Future<void> onLoad() async {
     super.onLoad();
-    screenWidth = gameRef.size.x; // 게임 화면의 너비를 저장
+    screenWidth = gameRef.size.x;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
 
-    // 오른쪽에서 왼쪽으로 이동
     x -= speed * dt;
 
-    // 화면 왼쪽 끝에 도달하면 위치 초기화
     if (x + size.x < 0) {
-      x = screenWidth; // 저장된 게임 화면의 너비를 사용하여 재설정
+      x = screenWidth;
     }
   }
 }
