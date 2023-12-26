@@ -27,6 +27,8 @@ class GameScreenState extends State<GameScreen> {
 class DinoGame extends FlameGame with TapDetector {
   late Player player;
   late Timer obstacleTimer;
+  double lastObstacleX = double.infinity; // 마지막 장애물의 X 위치
+  static const double minObstacleSpacing = 300; // 장애물 간 최소 간격
 
   @override
   Future<void> onLoad() async {
@@ -48,7 +50,7 @@ class DinoGame extends FlameGame with TapDetector {
     add(floor);
 
     // 장애물 타이머 설정
-    obstacleTimer = Timer(1, onTick: addObstacle, repeat: true);
+    obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
     obstacleTimer.start();
   }
 
@@ -57,14 +59,9 @@ class DinoGame extends FlameGame with TapDetector {
       position: Vector2(size.x, size.y - 60),
       screenHeight: size.y,
     );
+
     add(obstacle);
-
-    // 타이머 재설정
-    double randomInterval = Random().nextDouble() * 4 + 2;
-
-    obstacleTimer.stop();
-    obstacleTimer = Timer(randomInterval, onTick: addObstacle, repeat: true);
-    obstacleTimer.start();
+    lastObstacleX = size.x;
   }
 
   @override
@@ -76,14 +73,50 @@ class DinoGame extends FlameGame with TapDetector {
   void update(double dt) {
     super.update(dt);
     obstacleTimer.update(dt);
+
+    // 플레이어와 장애물의 충돌 검사
+    final obstacles = children.whereType<Obstacle>();
+    for (var obstacle in obstacles) {
+      if (player.toRect().overlaps(obstacle.toRect())) {
+        onCollision();
+        break;
+      }
+    }
+
+    children.whereType<Obstacle>().toList().forEach((obstacle) {
+      if (obstacle.x + obstacle.width < 0) {
+        remove(obstacle);
+      }
+    });
+  }
+
+  void onCollision() {
+    // 게임 종료 로직
+    print('게임 종료');
+    resetGame();
+  }
+
+  void resetGame() {
+    // 플레이어 위치 재설정
+    player.position = Vector2(size.x * 0.07, size.y - 60);
+    player.verticalSpeed = 0;
+    player.isJumping = false;
+
+    // 모든 장애물 제거
+    children.whereType<Obstacle>().toList().forEach(remove);
+
+    // 타이머 재설정
+    obstacleTimer.stop();
+    obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
+    obstacleTimer.start();
   }
 }
 
 class Player extends RectangleComponent {
   static const double playerSize = 50;
-  static const double jumpSpeed = -500; // 점프 속도를 좀 더 높게 설정
-  double verticalSpeed = 0;
-  double gravity = 800; // 중력 값을 적절하게 조정
+  static const double jumpSpeed = -440; // 점프 속도를 좀 더 높게 설정
+  double verticalSpeed = 20;
+  double gravity = 1000; // 중력 값을 적절하게 조정
   double groundPosition = 540; // 바닥 위치 적절하게 조정
   bool isJumping = false;
 
@@ -143,8 +176,9 @@ class Obstacle extends RectangleComponent with HasGameRef<DinoGame> {
 
     x -= speed * dt;
 
-    if (x + size.x < 0) {
-      x = screenWidth;
+    // 장애물이 화면 왼쪽 끝에 도달하면 제거
+    if (x + width < 0) {
+      removeFromParent();
     }
   }
 }
