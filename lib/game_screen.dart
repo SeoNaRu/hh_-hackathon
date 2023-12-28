@@ -27,6 +27,7 @@ class GameScreenState extends State<GameScreen> {
 class DinoGame extends FlameGame with TapDetector {
   late Player player;
   late Timer obstacleTimer;
+  late ScoreComponent scoreDisplay; // 스코어 디스플레이 인스턴스
   double lastObstacleX = double.infinity; // 마지막 장애물의 X 위치
   static const double minObstacleSpacing = 300; // 장애물 간 최소 간격
 
@@ -52,6 +53,10 @@ class DinoGame extends FlameGame with TapDetector {
     // 장애물 타이머 설정
     obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
     obstacleTimer.start();
+
+    // 스코어 디스플레이 컴포넌트를 생성하고 게임에 추가
+    scoreDisplay = ScoreComponent();
+    add(scoreDisplay);
   }
 
   void addObstacle() {
@@ -101,6 +106,7 @@ class DinoGame extends FlameGame with TapDetector {
     player.position = Vector2(size.x * 0.07, size.y - 60);
     player.verticalSpeed = 0;
     player.isJumping = false;
+    player.canDoubleJump = true;
 
     // 모든 장애물 제거
     children.whereType<Obstacle>().toList().forEach(remove);
@@ -109,6 +115,10 @@ class DinoGame extends FlameGame with TapDetector {
     obstacleTimer.stop();
     obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
     obstacleTimer.start();
+
+    // 스코어 컴포넌트의 점수를 0으로 초기화
+    scoreDisplay.score = 0;
+    scoreDisplay.text = 'Score: 0'; // 스코어 텍스트도 업데이트해야 합니다.
   }
 }
 
@@ -119,6 +129,7 @@ class Player extends RectangleComponent {
   double gravity = 1000; // 중력 값을 적절하게 조정
   double groundPosition = 540; // 바닥 위치 적절하게 조정
   bool isJumping = false;
+  bool canDoubleJump = true; // 2단 점프 가능 여부를 추적하는 변수
 
   Player({required Vector2 position, required double screenHeight})
       : groundPosition = screenHeight - 60, // 바닥 위치를 화면 높이에서 60만큼 빼서 설정
@@ -134,19 +145,26 @@ class Player extends RectangleComponent {
     super.update(dt);
 
     if (isJumping) {
-      verticalSpeed += gravity * dt; // 중력 적용
-      y += verticalSpeed * dt; // 수직 위치 업데이트
+      verticalSpeed += gravity * dt;
+      y += verticalSpeed * dt;
 
       if (y >= groundPosition) {
         y = groundPosition;
         isJumping = false;
+        canDoubleJump = true;
         verticalSpeed = 0;
       }
     }
   }
 
   void jump() {
-    if (!isJumping) {
+    // 이미 점프 중이고 2단 점프가 가능한 경우, 2단 점프 실행
+    if (isJumping && canDoubleJump) {
+      verticalSpeed = jumpSpeed; // 점프 속도 재설정
+      canDoubleJump = false; // 2단 점프 비활성화
+    }
+    // 아직 점프하지 않은 경우, 첫 번째 점프 실행
+    else if (!isJumping) {
       isJumping = true;
       verticalSpeed = jumpSpeed;
     }
@@ -180,5 +198,42 @@ class Obstacle extends RectangleComponent with HasGameRef<DinoGame> {
     if (x + width < 0) {
       removeFromParent();
     }
+  }
+}
+
+class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
+  int score = 0;
+  double timeAccumulator = 0; // 시간 누적을 위한 변수
+
+  ScoreComponent()
+      : super(
+          text: 'Score: 0',
+          position: Vector2.all(10),
+          textRenderer: TextPaint(
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24.0,
+            ),
+          ),
+        );
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    timeAccumulator += dt;
+    // 게임 시간에 따라 점수 증가
+    if (timeAccumulator >= 1) {
+      score++;
+      timeAccumulator -= 1; // 누적된 시간에서 1초를 뺌
+      text = 'Score: $score'; // 텍스트 업데이트
+    }
+  }
+
+  // 화면의 오른쪽 상단에 위치하도록 좌표를 설정합니다.
+  @override
+  void onGameResize(Vector2 gameSize) {
+    super.onGameResize(gameSize);
+    this.position = Vector2(gameSize.x - this.width - 10, 10);
+    this.anchor = Anchor.topRight;
   }
 }
