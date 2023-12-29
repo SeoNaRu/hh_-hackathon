@@ -84,6 +84,15 @@ class DinoGame extends FlameGame with TapDetector {
   double lastObstacleX = double.infinity; // 마지막 장애물의 X 위치
   static const double minObstacleSpacing = 300; // 장애물 간 최소 간격
 
+  int obstaclesCounter = 0; // 생성된 장애물의 수를 추적합니다.
+  static const int obstaclesBeforeNextRound =
+      2; // 다음 라운드로 가기 전에 생성되어야 하는 장애물의 수입니다.
+  bool nextRoundObjectAdded = false; // 다음 라운드 오브젝트가 이미 추가되었는지를 추적합니다.
+
+  int round = 1; // 현재 라운드를 추적하는 변수
+  double obstacleSpeedIncrease = 20; // 라운드마다 장애물 속도 증가량
+  double obstacleSpeed = 200; // 초기 장애물 속도
+
   DinoGame({required this.onGameOver, required this.onGameReady});
 
   @override
@@ -119,21 +128,6 @@ class DinoGame extends FlameGame with TapDetector {
     );
     add(player);
 
-    // 바닥 추가
-
-    // final floorimage = await images.load('background.png');
-    // floor = SpriteComponent()
-    //   ..sprite = Sprite(floorimage)
-    //   ..position = Vector2(0, size.y - 60)
-    //   ..size = size;
-
-    // // var floor = RectangleComponent(
-    // //   position: Vector2(0, size.y - 60),
-    // //   size: Vector2(size.x, 60),
-    // //   paint: Paint()..color = Colors.red,
-    // // );
-    // add(floor);
-
     // 장애물 타이머 설정
     obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
     obstacleTimer.start();
@@ -163,10 +157,27 @@ class DinoGame extends FlameGame with TapDetector {
     var obstacle = Obstacle(
       position: Vector2(size.x, size.y - 60),
       screenHeight: size.y,
+      speed: obstacleSpeed,
     );
+    if (!nextRoundObjectAdded) {
+      add(obstacle);
+      lastObstacleX = size.x;
+      obstaclesCounter++;
+      if (obstaclesCounter == obstaclesBeforeNextRound &&
+          !nextRoundObjectAdded) {
+        addNextRoundObject();
+        nextRoundObjectAdded = true; // 다음 라운드 오브젝트가 추가되었음을 표시합니다.
+      }
+    }
+  }
 
-    add(obstacle);
-    lastObstacleX = size.x;
+  void addNextRoundObject() {
+    // 다음 라운드 오브젝트 생성 로직
+    var nextRoundObject = NextRoundObject(
+      position: Vector2(size.x, size.y - 60),
+      screenHeight: size.y,
+    );
+    add(nextRoundObject);
   }
 
   @override
@@ -175,6 +186,15 @@ class DinoGame extends FlameGame with TapDetector {
       super.update(dt);
       obstacleTimer.update(dt);
       scoreDisplay.update(dt);
+    }
+
+    final nextRoundObjects = children.whereType<NextRoundObject>();
+    for (final nextRoundObject in nextRoundObjects) {
+      if (player.toRect().overlaps(nextRoundObject.toRect())) {
+        nextRound(); // 다음 라운드로 이동하는 메서드 호출
+        remove(nextRoundObject); // NextRoundObject 제거
+        break; // 루프 종료
+      }
     }
 
     final obstacles = children.whereType<Obstacle>();
@@ -190,6 +210,31 @@ class DinoGame extends FlameGame with TapDetector {
         remove(obstacle);
       }
     });
+  }
+
+  void nextRound() {
+    // 다음 라운드로 이동하는 로직...
+    print('다음 라운드');
+    round++; // 다음 라운드로 증가
+    obstacleSpeed += obstacleSpeedIncrease;
+    // 모든 장애물의 속도를 증가시키기
+    final obstacles = children.whereType<Obstacle>();
+    for (var obstacle in obstacles) {
+      obstacle.increaseSpeed(obstacleSpeedIncrease); // 속도를 증가
+    }
+
+    obstaclesCounter = 0;
+    nextRoundObjectAdded = false;
+    children.whereType<Obstacle>().forEach((obstacle) {
+      remove(obstacle); // 모든 장애물 제거
+    });
+
+    // player.position = Vector2(size.x * 0.07, size.y - 60);
+    // player.verticalSpeed = 0;
+    // player.isJumping = false;
+    // player.canDoubleJump = true;
+
+    children.whereType<Obstacle>().toList().forEach(remove);
   }
 
   void startGame() {
@@ -309,11 +354,14 @@ class Player extends RectangleComponent with HasGameRef<DinoGame> {
 }
 
 class Obstacle extends RectangleComponent with HasGameRef<DinoGame> {
-  static const double speed = 250; // 장애물 이동 속도
+  late double speed;
   late final SpriteAnimationComponent animationComponent;
   late double screenWidth;
 
-  Obstacle({required Vector2 position, required double screenHeight})
+  Obstacle(
+      {required Vector2 position,
+      required double screenHeight,
+      this.speed = 200})
       : super(
             position: position,
             size: Vector2(60, 45),
@@ -343,10 +391,14 @@ class Obstacle extends RectangleComponent with HasGameRef<DinoGame> {
     add(animationComponent);
   }
 
+  void increaseSpeed(double increment) {
+    speed += increment;
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
-
+    print(speed);
     x -= speed * dt;
 
     if (x + width < 0) {
@@ -386,5 +438,29 @@ class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
   void resetScore() {
     score = 0;
     text = 'Score: $score';
+  }
+}
+
+class NextRoundObject extends RectangleComponent with HasGameRef<DinoGame> {
+  static const double speed = 170; // 장애물 이동 속도
+  late final SpriteAnimationComponent animationComponent;
+  late double screenWidth;
+
+  NextRoundObject({required Vector2 position, required double screenHeight})
+      : super(
+            position: position,
+            size: Vector2(60, 600),
+            anchor: Anchor.bottomRight,
+            paint: Paint()..color = Colors.white);
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    x -= speed * dt;
+
+    if (x + width < 0) {
+      removeFromParent();
+    }
   }
 }
