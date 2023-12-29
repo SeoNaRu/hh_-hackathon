@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/events.dart';
@@ -76,22 +77,26 @@ class DinoGame extends FlameGame with TapDetector {
   bool isGameRunning = false;
   final Function onGameReady; // 게임이 준비되었을 때 호출될 콜백
   late SpriteComponent background;
-  late SpriteComponent floor;
+  // late SpriteComponent floor;
+  late RoundComponent roundDisplay;
 
   late Player player;
-  late Timer obstacleTimer;
+  Timer obstacleTimer = Timer(1.5, repeat: false);
   late ScoreComponent scoreDisplay; // 스코어 디스플레이 인스턴스
   double lastObstacleX = double.infinity; // 마지막 장애물의 X 위치
   static const double minObstacleSpacing = 300; // 장애물 간 최소 간격
 
   int obstaclesCounter = 0; // 생성된 장애물의 수를 추적합니다.
   static const int obstaclesBeforeNextRound =
-      2; // 다음 라운드로 가기 전에 생성되어야 하는 장애물의 수입니다.
+      10; // 다음 라운드로 가기 전에 생성되어야 하는 장애물의 수입니다.
   bool nextRoundObjectAdded = false; // 다음 라운드 오브젝트가 이미 추가되었는지를 추적합니다.
 
   int round = 1; // 현재 라운드를 추적하는 변수
   double obstacleSpeedIncrease = 20; // 라운드마다 장애물 속도 증가량
   double obstacleSpeed = 200; // 초기 장애물 속도
+
+  double minSpawnInterval = 0.9; // 최소 장애물 생성 간격
+  double maxSpawnInterval = 2.0; // 최대 장애물 생성 간격
 
   DinoGame({required this.onGameOver, required this.onGameReady});
 
@@ -129,14 +134,29 @@ class DinoGame extends FlameGame with TapDetector {
     add(player);
 
     // 장애물 타이머 설정
-    obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
-    obstacleTimer.start();
+    // obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
+    // obstacleTimer.start();
+    // 다음 장애물 생성까지의 랜덤 간격 설정
 
     // 스코어 디스플레이 컴포넌트를 생성하고 게임에 추가
     scoreDisplay = ScoreComponent();
     add(scoreDisplay);
 
+    roundDisplay = RoundComponent(round)
+      ..position = Vector2(
+          scoreDisplay.position.x - 100, scoreDisplay.position.y); // 예시 위치
+    add(roundDisplay);
+
     onGameReady();
+  }
+
+  void resetObstacleTimer() {
+    double interval =
+        Random().nextDouble() * (maxSpawnInterval - minSpawnInterval) +
+            minSpawnInterval;
+    obstacleTimer.stop();
+    obstacleTimer = Timer(interval, onTick: addObstacle, repeat: false);
+    obstacleTimer.start();
   }
 
   // 패럴랙스 컴포넌트를 로드하는 함수를 정의합니다.
@@ -169,6 +189,8 @@ class DinoGame extends FlameGame with TapDetector {
         nextRoundObjectAdded = true; // 다음 라운드 오브젝트가 추가되었음을 표시합니다.
       }
     }
+
+    resetObstacleTimer();
   }
 
   void addNextRoundObject() {
@@ -214,8 +236,14 @@ class DinoGame extends FlameGame with TapDetector {
 
   void nextRound() {
     // 다음 라운드로 이동하는 로직...
-    print('다음 라운드');
+
     round++; // 다음 라운드로 증가
+    roundDisplay.updateRound(round);
+    if (maxSpawnInterval > 1) {
+      maxSpawnInterval -= 0.1;
+    }
+
+    print(maxSpawnInterval);
     obstacleSpeed += obstacleSpeedIncrease;
     // 모든 장애물의 속도를 증가시키기
     final obstacles = children.whereType<Obstacle>();
@@ -256,6 +284,15 @@ class DinoGame extends FlameGame with TapDetector {
 
     isGameRunning = false; // 게임 실행 상태를 false로 설정
 
+    maxSpawnInterval = 2.0;
+    obstacleSpeed = 200; // 초기 장애물 속도
+    obstaclesCounter = 0;
+    nextRoundObjectAdded = false;
+
+    children.whereType<NextRoundObject>().forEach((obstacle) {
+      remove(obstacle); // 모든 장애물 제거
+    });
+
     children.whereType<Obstacle>().forEach((obstacle) {
       remove(obstacle); // 모든 장애물 제거
     });
@@ -271,8 +308,10 @@ class DinoGame extends FlameGame with TapDetector {
 
     children.whereType<Obstacle>().toList().forEach(remove);
 
-    obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
-    obstacleTimer.start();
+    resetObstacleTimer();
+
+    // obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
+    // obstacleTimer.start();
 
     scoreDisplay.score = 0;
     scoreDisplay.text = 'Score: 0'; // 스코어 텍스트도 업데이트해야 합니다.
@@ -411,7 +450,16 @@ class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
   int score = 0;
   double timeAccumulator = 0;
 
-  ScoreComponent() : super(anchor: Anchor.topCenter);
+  ScoreComponent()
+      : super(
+          anchor: Anchor.topCenter,
+          textRenderer: TextPaint(
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+            ),
+          ),
+        );
 
   @override
   Future<void> onLoad() async {
@@ -419,7 +467,7 @@ class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
 
     text = 'Score: $score';
 
-    position = Vector2(gameRef.size.x / 2.1, 20);
+    position = Vector2(gameRef.size.x / 1.1, 20);
   }
 
   @override
@@ -441,17 +489,66 @@ class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
   }
 }
 
+class RoundComponent extends TextComponent with HasGameRef<DinoGame> {
+  RoundComponent(int round)
+      : super(
+          text: 'Round: $round',
+          anchor: Anchor.topCenter, // 위치 지정
+          // 텍스트 스타일 설정
+          textRenderer: TextPaint(
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+            ),
+          ),
+        );
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    position = Vector2(gameRef.size.x / 1.26, 20);
+  }
+
+  void updateRound(int round) {
+    text = 'Round: $round';
+  }
+}
+
 class NextRoundObject extends RectangleComponent with HasGameRef<DinoGame> {
   static const double speed = 170; // 장애물 이동 속도
+  final double screenHeight;
   late final SpriteAnimationComponent animationComponent;
-  late double screenWidth;
 
-  NextRoundObject({required Vector2 position, required double screenHeight})
+  NextRoundObject({required Vector2 position, required this.screenHeight})
       : super(
             position: position,
-            size: Vector2(60, 600),
+            size: Vector2(60, screenHeight),
             anchor: Anchor.bottomRight,
-            paint: Paint()..color = Colors.white);
+            paint: Paint()..color = Colors.transparent);
+
+  @override
+  Future<void> onLoad() async {
+    super.onLoad();
+
+    final spriteSheet = await gameRef.images.load('MaskRun(32x32).png');
+    final spriteAnimation = SpriteAnimation.fromFrameData(
+      spriteSheet,
+      SpriteAnimationData.sequenced(
+        amount: 11,
+        stepTime: 0.05,
+        textureSize: Vector2.all(32),
+      ),
+    );
+
+    animationComponent = FlippedSpriteAnimationComponent(
+      animation: spriteAnimation,
+      position: Vector2(-8, screenHeight - 54),
+      size: Vector2.all(60),
+    );
+
+    add(animationComponent);
+  }
 
   @override
   void update(double dt) {
@@ -462,5 +559,36 @@ class NextRoundObject extends RectangleComponent with HasGameRef<DinoGame> {
     if (x + width < 0) {
       removeFromParent();
     }
+  }
+}
+
+class FlippedSpriteAnimationComponent extends SpriteAnimationComponent {
+  FlippedSpriteAnimationComponent({
+    SpriteAnimation? animation,
+    Vector2? position,
+    Vector2? size,
+    // 나머지 파라미터들...
+  }) : super(
+          animation: animation,
+          position: position,
+          size: size,
+          // 나머지 파라미터들...
+        );
+
+  @override
+  void render(Canvas canvas) {
+    // 현재 canvas 상태 저장
+    canvas.save();
+
+    // 이미지를 수평으로 뒤집기 위한 변환 적용
+    // 기본 위치에서 이미지 너비만큼 왼쪽으로 이동한 다음에, 수평으로 뒤집습니다.
+    canvas.translate(size.x, 0);
+    canvas.scale(-1.0, 1.0);
+
+    // 원래의 render 메서드 호출
+    super.render(canvas);
+
+    // 저장된 canvas 상태를 복원
+    canvas.restore();
   }
 }
