@@ -39,25 +39,91 @@ class GameScreenState extends State<GameScreen> {
   }
 
   void showGameOverModal() {
-    if (!isGameRunning) return; // 이미 게임이 종료된 상태라면 아무 것도 하지 않음
+    if (!isGameRunning) return;
 
     showDialog(
       context: context,
-      barrierDismissible: false, // 사용자가 다이얼로그 바깥을 눌러서 닫을 수 없게 함
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('게임 오버'),
-          content: Text('점수: ${_game.scoreDisplay.score}'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('다시 시작하기'),
-              onPressed: () {
-                Navigator.of(context).pop(); // 모달 닫기
-                _game.resetGame(); // 게임 리셋
-                startGame(); // 게임 재시작
-              },
+          backgroundColor: Colors.green.withOpacity(0.8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Colors.brown,
+              width: 3,
             ),
-          ],
+          ),
+          title: Text(
+            'GAME OVER',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'JungleFever',
+              color: Color(0xFFDAA520),
+            ),
+          ),
+          content: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(
+                    height: 20,
+                  ),
+                  Text(
+                    'ROUND : ${_game.round}',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontFamily: 'JungleFever',
+                      color: Color(0xFFDAA520),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    'SCORE : ${_game.scoreDisplay.score}',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontFamily: 'JungleFever',
+                      color: Color(0xFFDAA520),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _game.resetGame();
+                  startGame();
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.brown,
+                    border: Border.all(
+                      color: Colors.brown,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'RESTART GAME',
+                      style: TextStyle(
+                        fontFamily: 'JungleFever',
+                        color: Color(0xFFDAA520),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            ],
+          ),
         );
       },
     );
@@ -143,8 +209,8 @@ class DinoGame extends FlameGame with TapDetector {
     add(scoreDisplay);
 
     roundDisplay = RoundComponent(round)
-      ..position = Vector2(
-          scoreDisplay.position.x - 100, scoreDisplay.position.y); // 예시 위치
+      ..position =
+          Vector2(scoreDisplay.position.x - 100, scoreDisplay.position.y);
     add(roundDisplay);
 
     onGameReady();
@@ -243,7 +309,6 @@ class DinoGame extends FlameGame with TapDetector {
       maxSpawnInterval -= 0.1;
     }
 
-    print(maxSpawnInterval);
     obstacleSpeed += obstacleSpeedIncrease;
     // 모든 장애물의 속도를 증가시키기
     final obstacles = children.whereType<Obstacle>();
@@ -437,7 +502,7 @@ class Obstacle extends RectangleComponent with HasGameRef<DinoGame> {
   @override
   void update(double dt) {
     super.update(dt);
-    print(speed);
+
     x -= speed * dt;
 
     if (x + width < 0) {
@@ -455,8 +520,10 @@ class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
           anchor: Anchor.topCenter,
           textRenderer: TextPaint(
             style: TextStyle(
-              color: Colors.white,
               fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'JungleFever',
+              color: Color(0xFFDAA520),
             ),
           ),
         );
@@ -465,9 +532,9 @@ class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    text = 'Score: $score';
+    text = 'SCORE : $score';
 
-    position = Vector2(gameRef.size.x / 1.1, 20);
+    position = Vector2(gameRef.size.x / 1.14, 20);
   }
 
   @override
@@ -478,27 +545,29 @@ class ScoreComponent extends TextComponent with HasGameRef<DinoGame> {
       while (timeAccumulator >= 1) {
         score++;
         timeAccumulator -= 1;
-        text = 'Score: $score';
+        text = 'SCORE : $score';
       }
     }
   }
 
   void resetScore() {
     score = 0;
-    text = 'Score: $score';
+    text = 'SCORE : $score';
   }
 }
 
 class RoundComponent extends TextComponent with HasGameRef<DinoGame> {
   RoundComponent(int round)
       : super(
-          text: 'Round: $round',
+          text: 'ROUND : $round',
           anchor: Anchor.topCenter, // 위치 지정
           // 텍스트 스타일 설정
           textRenderer: TextPaint(
             style: TextStyle(
-              color: Colors.white,
               fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'JungleFever',
+              color: Color(0xFFDAA520),
             ),
           ),
         );
@@ -507,7 +576,7 @@ class RoundComponent extends TextComponent with HasGameRef<DinoGame> {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    position = Vector2(gameRef.size.x / 1.26, 20);
+    position = Vector2(gameRef.size.x / 1.36, 20);
   }
 
   void updateRound(int round) {

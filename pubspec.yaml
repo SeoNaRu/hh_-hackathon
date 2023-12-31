@@ -23,6 +23,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  fonts:
+    - family: JungleFever
+      fonts:
+        - asset: assets/fonts/JUNGLEFE.TTF
+
+
   assets:
     - assets/images/
     - assets/images/parallax/
