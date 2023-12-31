@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flame/events.dart';
-import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/parallax.dart';
@@ -17,7 +15,7 @@ class GameScreen extends StatefulWidget {
 }
 
 class GameScreenState extends State<GameScreen> {
-  late DinoGame _game; // 게임 인스턴스를 저장하기 위한 변수
+  late DinoGame _game;
   bool isGameRunning = false;
 
   @override
@@ -49,12 +47,12 @@ class GameScreenState extends State<GameScreen> {
           backgroundColor: Colors.green.withOpacity(0.8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
+            side: const BorderSide(
               color: Colors.brown,
               width: 3,
             ),
           ),
-          title: Text(
+          title: const Text(
             'GAME OVER',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -70,23 +68,23 @@ class GameScreenState extends State<GameScreen> {
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   Text(
                     'ROUND : ${_game.round}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
                       fontFamily: 'JungleFever',
                       color: Color(0xFFDAA520),
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   Text(
                     'SCORE : ${_game.scoreDisplay.score}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
                       fontFamily: 'JungleFever',
                       color: Color(0xFFDAA520),
@@ -111,7 +109,7 @@ class GameScreenState extends State<GameScreen> {
                       width: 2,
                     ),
                   ),
-                  child: Center(
+                  child: const Center(
                     child: Text(
                       'RESTART GAME',
                       style: TextStyle(
@@ -143,7 +141,6 @@ class DinoGame extends FlameGame with TapDetector {
   bool isGameRunning = false;
   final Function onGameReady; // 게임이 준비되었을 때 호출될 콜백
   late SpriteComponent background;
-  // late SpriteComponent floor;
   late RoundComponent roundDisplay;
 
   late Player player;
@@ -154,7 +151,7 @@ class DinoGame extends FlameGame with TapDetector {
 
   int obstaclesCounter = 0; // 생성된 장애물의 수를 추적합니다.
   static const int obstaclesBeforeNextRound =
-      10; // 다음 라운드로 가기 전에 생성되어야 하는 장애물의 수입니다.
+      5; // 다음 라운드로 가기 전에 생성되어야 하는 장애물의 수입니다.
   bool nextRoundObjectAdded = false; // 다음 라운드 오브젝트가 이미 추가되었는지를 추적합니다.
 
   int round = 1; // 현재 라운드를 추적하는 변수
@@ -170,13 +167,6 @@ class DinoGame extends FlameGame with TapDetector {
   Future<void> onLoad() async {
     super.onLoad();
 
-    // final backgroundImage = await images.load('background.png');
-    // background = SpriteComponent()
-    //   ..sprite = Sprite(backgroundImage)
-    //   ..size = size;
-    // add(background);
-
-    // 패럴랙스 컴포넌트를 만들기 위해 이미지들의 파일 경로를 사용합니다.
     final parallaxComponent = await loadParallaxComponent(
       [
         ParallaxImageData('parallax/plx-1.png'),
@@ -189,8 +179,6 @@ class DinoGame extends FlameGame with TapDetector {
       baseVelocity: Vector2(20, 0), // 기본 속도 설정
       velocityMultiplierDelta: Vector2(1.1, 0), // 속도 증가량 설정
     );
-
-    // 생성된 패럴랙스 컴포넌트를 게임에 추가합니다.
     add(parallaxComponent);
 
     player = Player(
@@ -199,12 +187,6 @@ class DinoGame extends FlameGame with TapDetector {
     );
     add(player);
 
-    // 장애물 타이머 설정
-    // obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
-    // obstacleTimer.start();
-    // 다음 장애물 생성까지의 랜덤 간격 설정
-
-    // 스코어 디스플레이 컴포넌트를 생성하고 게임에 추가
     scoreDisplay = ScoreComponent();
     add(scoreDisplay);
 
@@ -225,7 +207,6 @@ class DinoGame extends FlameGame with TapDetector {
     obstacleTimer.start();
   }
 
-  // 패럴랙스 컴포넌트를 로드하는 함수를 정의합니다.
   Future<ParallaxComponent> loadParallaxComponent(
     List<ParallaxImageData> data, {
     required Vector2 baseVelocity,
@@ -252,7 +233,7 @@ class DinoGame extends FlameGame with TapDetector {
       if (obstaclesCounter == obstaclesBeforeNextRound &&
           !nextRoundObjectAdded) {
         addNextRoundObject();
-        nextRoundObjectAdded = true; // 다음 라운드 오브젝트가 추가되었음을 표시합니다.
+        nextRoundObjectAdded = true;
       }
     }
 
@@ -260,7 +241,6 @@ class DinoGame extends FlameGame with TapDetector {
   }
 
   void addNextRoundObject() {
-    // 다음 라운드 오브젝트 생성 로직
     var nextRoundObject = NextRoundObject(
       position: Vector2(size.x, size.y - 60),
       screenHeight: size.y,
@@ -279,9 +259,9 @@ class DinoGame extends FlameGame with TapDetector {
     final nextRoundObjects = children.whereType<NextRoundObject>();
     for (final nextRoundObject in nextRoundObjects) {
       if (player.toRect().overlaps(nextRoundObject.toRect())) {
-        nextRound(); // 다음 라운드로 이동하는 메서드 호출
-        remove(nextRoundObject); // NextRoundObject 제거
-        break; // 루프 종료
+        nextRound();
+        remove(nextRoundObject);
+        break;
       }
     }
 
@@ -301,16 +281,13 @@ class DinoGame extends FlameGame with TapDetector {
   }
 
   void nextRound() {
-    // 다음 라운드로 이동하는 로직...
-
-    round++; // 다음 라운드로 증가
+    round++;
     roundDisplay.updateRound(round);
     if (maxSpawnInterval > 1) {
       maxSpawnInterval -= 0.1;
     }
 
     obstacleSpeed += obstacleSpeedIncrease;
-    // 모든 장애물의 속도를 증가시키기
     final obstacles = children.whereType<Obstacle>();
     for (var obstacle in obstacles) {
       obstacle.increaseSpeed(obstacleSpeedIncrease); // 속도를 증가
@@ -319,20 +296,17 @@ class DinoGame extends FlameGame with TapDetector {
     obstaclesCounter = 0;
     nextRoundObjectAdded = false;
     children.whereType<Obstacle>().forEach((obstacle) {
-      remove(obstacle); // 모든 장애물 제거
+      remove(obstacle);
     });
-
-    // player.position = Vector2(size.x * 0.07, size.y - 60);
-    // player.verticalSpeed = 0;
-    // player.isJumping = false;
-    // player.canDoubleJump = true;
 
     children.whereType<Obstacle>().toList().forEach(remove);
   }
 
   void startGame() {
     isGameRunning = true;
-    scoreDisplay.resetScore(); // 스코어 리셋
+    round = 1;
+    scoreDisplay.resetScore();
+    roundDisplay.updateRound(round);
 
     resetGame();
   }
@@ -347,22 +321,22 @@ class DinoGame extends FlameGame with TapDetector {
   void onCollision() {
     if (!isGameRunning) return;
 
-    isGameRunning = false; // 게임 실행 상태를 false로 설정
+    isGameRunning = false;
 
     maxSpawnInterval = 2.0;
-    obstacleSpeed = 200; // 초기 장애물 속도
+    obstacleSpeed = 200;
     obstaclesCounter = 0;
     nextRoundObjectAdded = false;
 
     children.whereType<NextRoundObject>().forEach((obstacle) {
-      remove(obstacle); // 모든 장애물 제거
+      remove(obstacle);
     });
 
     children.whereType<Obstacle>().forEach((obstacle) {
-      remove(obstacle); // 모든 장애물 제거
+      remove(obstacle);
     });
 
-    onGameOver(); // 게임 오버 콜백 호출
+    onGameOver();
   }
 
   void resetGame() {
@@ -375,11 +349,8 @@ class DinoGame extends FlameGame with TapDetector {
 
     resetObstacleTimer();
 
-    // obstacleTimer = Timer(1.5, onTick: addObstacle, repeat: true);
-    // obstacleTimer.start();
-
     scoreDisplay.score = 0;
-    scoreDisplay.text = 'Score: 0'; // 스코어 텍스트도 업데이트해야 합니다.
+    scoreDisplay.text = 'Score: 0';
   }
 }
 
@@ -387,12 +358,12 @@ class Player extends RectangleComponent with HasGameRef<DinoGame> {
   late final SpriteAnimationComponent animationComponent;
 
   static const double playerSize = 50;
-  static const double jumpSpeed = -380; // 점프 속도를 좀 더 높게 설정
+  static const double jumpSpeed = -380;
   double verticalSpeed = 1000;
-  double gravity = 800; // 중력 값을 적절하게 조정
-  double groundPosition = 540; // 바닥 위치 적절하게 조정
+  double gravity = 800;
+  double groundPosition = 540;
   bool isJumping = false;
-  bool canDoubleJump = true; // 2단 점프 가능 여부를 추적하는 변수
+  bool canDoubleJump = true;
 
   Player({required Vector2 position, required double screenHeight})
       : groundPosition = screenHeight - 60, // 바닥 위치를 화면 높이에서 60만큼 빼서 설정
@@ -444,13 +415,10 @@ class Player extends RectangleComponent with HasGameRef<DinoGame> {
   }
 
   void jump() {
-    // 이미 점프 중이고 2단 점프가 가능한 경우, 2단 점프 실행
     if (isJumping && canDoubleJump) {
-      verticalSpeed = jumpSpeed; // 점프 속도 재설정
-      canDoubleJump = false; // 2단 점프 비활성화
-    }
-    // 아직 점프하지 않은 경우, 첫 번째 점프 실행
-    else if (!isJumping) {
+      verticalSpeed = jumpSpeed;
+      canDoubleJump = false;
+    } else if (!isJumping) {
       isJumping = true;
       verticalSpeed = jumpSpeed;
     }
@@ -560,10 +528,9 @@ class RoundComponent extends TextComponent with HasGameRef<DinoGame> {
   RoundComponent(int round)
       : super(
           text: 'ROUND : $round',
-          anchor: Anchor.topCenter, // 위치 지정
-          // 텍스트 스타일 설정
+          anchor: Anchor.topCenter,
           textRenderer: TextPaint(
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               fontFamily: 'JungleFever',
@@ -585,7 +552,7 @@ class RoundComponent extends TextComponent with HasGameRef<DinoGame> {
 }
 
 class NextRoundObject extends RectangleComponent with HasGameRef<DinoGame> {
-  static const double speed = 170; // 장애물 이동 속도
+  static const double speed = 170;
   final double screenHeight;
   late final SpriteAnimationComponent animationComponent;
 
@@ -636,7 +603,6 @@ class FlippedSpriteAnimationComponent extends SpriteAnimationComponent {
     SpriteAnimation? animation,
     Vector2? position,
     Vector2? size,
-    // 나머지 파라미터들...
   }) : super(
           animation: animation,
           position: position,
@@ -646,18 +612,13 @@ class FlippedSpriteAnimationComponent extends SpriteAnimationComponent {
 
   @override
   void render(Canvas canvas) {
-    // 현재 canvas 상태 저장
     canvas.save();
 
-    // 이미지를 수평으로 뒤집기 위한 변환 적용
-    // 기본 위치에서 이미지 너비만큼 왼쪽으로 이동한 다음에, 수평으로 뒤집습니다.
     canvas.translate(size.x, 0);
     canvas.scale(-1.0, 1.0);
 
-    // 원래의 render 메서드 호출
     super.render(canvas);
 
-    // 저장된 canvas 상태를 복원
     canvas.restore();
   }
 }
